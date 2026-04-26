@@ -1,10 +1,11 @@
 import os
-from helpers.db import engine
-from helpers.db import Base
+from helpers.db import engine, Base
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from controllers import AuthController
+from controllers import * 
+from services import *
+from adapters import *
 
 class Server():
 
@@ -16,20 +17,27 @@ class Server():
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
 
-        FRONTEND_URL = os.getenv("FRONTEND_URL")
+        FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=[FRONTEND_URL],
-            allow_credentials=True,   # 🔥 REQUIRED
+            allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
         )
 
         # Auth
-        self.auth_controller = AuthController()
+        secret = os.getenv("JWT_SECRET", "supersecret")
+        jwt_service = JWTService(secret)
+        auth_service = AuthService(jwt_service)
+        google_oauth_api = GoogleOAuthAPI()
+        oauth_service = OAuthService(jwt_service, google_oauth_api)
+        self.auth_controller = AuthController(auth_service)
+        self.oauth_controller = OAuthController(oauth_service, FRONTEND_URL)
 
         self.register_routes()
 
     def register_routes(self):
         self.auth_controller.register_routes(self.app)
+        self.oauth_controller.register_routes(self.app)

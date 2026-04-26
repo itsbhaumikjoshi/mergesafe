@@ -2,8 +2,9 @@ from fastapi import FastAPI, Request, Response, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from services.auth_service import AuthService, AuthError
+
 from helpers.db import get_db, AsyncSessionLocal
+from services import AuthService, AuthError
 
 class LoginRequest(BaseModel):
     email: str
@@ -16,8 +17,8 @@ class RegisterRequest(BaseModel):
     password: str
 
 class AuthController:
-    def __init__(self):
-        self.auth_service = AuthService()
+    def __init__(self, auth_service: AuthService):
+        self.auth_service = auth_service
 
     def register_routes(self, app: FastAPI):
         
@@ -41,6 +42,8 @@ class AuthController:
                 response.set_cookie(key="sid", value=token, httponly=True, samesite="none", secure=True, max_age=60*60*24*30)
             except AuthError as e:
                 return JSONResponse(status_code=e.status_code, content={"message": e.message})
+            except Exception as e:
+                return JSONResponse(status_code=500, content={"message": str(e)})
 
         @app.post("/api/v1/auth/register")
         async def register(data: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)):
@@ -49,6 +52,8 @@ class AuthController:
                 response.set_cookie(key="sid", value=token, httponly=True, samesite="none", secure=True, max_age=60*60*24*30)
             except AuthError as e:
                 return JSONResponse(status_code=e.status_code, content={"message": e.message})
+            except Exception as e:
+                return JSONResponse(status_code=500, content={"message": str(e)})
 
         @app.post("/api/v1/auth/logout")
         async def logout(response: Response):

@@ -10,9 +10,8 @@ class AuthError(Exception):
         self.status_code = status_code
 
 class AuthService:
-    def __init__(self):
-        secret = os.getenv("JWT_SECRET", "supersecret")
-        self.jwt_service = JWTService(secret)
+    def __init__(self, jwt_service: JWTService):
+        self.jwt_service = jwt_service
 
     def hash_password(self, password: str) -> str:
         salt = bcrypt.gensalt()
