@@ -55,7 +55,7 @@ class AuthController:
             except Exception as e:
                 return JSONResponse(status_code=500, content={"message": str(e)})
 
-        @app.post("/api/v1/auth/logout")
+        @app.get("/api/v1/auth/logout")
         async def logout(response: Response):
             response.delete_cookie(key="sid")
 
