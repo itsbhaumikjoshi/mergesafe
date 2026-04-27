@@ -1,8 +1,12 @@
-from typing import List, Dict, Set
+import asyncio
+import heapq
+import json
 import urllib.parse
+from typing import List, Dict, Set
 
-from adapters import GitHubAPI, GitHubAPIError
-from constants import get_github_repo_content_for_branch
+from adapters import GenAIAPI, GenAIAPIError, GitHubAPI, GitHubAPIError
+from constants import get_gen_ai_prompt, get_github_repo_content_for_branch
+from mock import MOCK_DATA
 from parsers.python_parser import PythonDiffParser
 
 class PRError(Exception):
@@ -11,29 +15,47 @@ class PRError(Exception):
         self.status_code = status_code
 
 class PRService():
-    def __init__(self, github_api: GitHubAPI):
+    def __init__(self, github_api: GitHubAPI, gen_ai_api: GenAIAPI, python_parser: PythonDiffParser):
         self.github_api = github_api
-        self.python_parser = PythonDiffParser()
+        self.gen_ai_api = gen_ai_api
+        self.python_parser = python_parser
 
     async def get_pr_file_change_nodes(self, owner: str, repo: str, pr_number: int, page: int = 1) -> List[str]:
-        files = await self.github_api.fetch_pr_files_diff(owner, repo, pr_number, page)
-        all_changes = []
-        for file in files:
-            filename = file.get("filename", "")
-            patch = file.get("patch", None)
-            
-            if filename.endswith(".py") and patch is not None:
-                changes = self.python_parser.parse_diff(filename, patch)
-                all_changes.extend(changes)
+        if owner == "mock" and repo == "mock" and pr_number == 1:
+            await asyncio.sleep(3)
+            return MOCK_DATA.get("nodes")
+        try:
+            files = await self.github_api.fetch_pr_files_diff(owner, repo, pr_number, page)
+            all_changes = []
+            for file in files:
+                filename = file.get("filename", "")
+                patch = file.get("patch", None)
                 
-        seen = set()
-        deduped = []
-        for item in all_changes:
-            if item not in seen:
-                seen.add(item)
-                deduped.append(item)
-                
-        return deduped
+                if filename.endswith(".py") and patch is not None:
+                    changes = self.python_parser.parse_diff(filename, patch)
+                    all_changes.extend(changes)
+                    
+            seen = set()
+            deduped = []
+            for item in all_changes:
+                if item not in seen:
+                    seen.add(item)
+                    deduped.append(item)
+                    
+            return deduped
+        except GitHubAPIError as e:
+            raise PRError(e.message, e.status_code)
+        except Exception as e:
+            raise PRError(str(e), 500)
+
+    def clean_llm_json(self, text: str) -> str:
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            text = text.replace("json", "", 1).strip()
+        if text.endswith("```"):
+            text = text.rsplit("```", 1)[0].strip()
+        return text
 
     def get_all_affected(self, symbol, graph, visited=None):
         if visited is None:
@@ -77,34 +99,85 @@ class PRService():
         return "LOW"
 
     async def compute_blast_radius(self, changed_nodes: list, graph: dict, nodes: list) -> dict:
-        direct_callers = {}
-        for changed in changed_nodes:
-            if changed in graph:
-                direct_callers[changed] = graph[changed]
+        try:
 
-        transitive = {}
-        for changed in changed_nodes:
-            affected = self.get_all_affected(changed, graph)
-            affected.discard(changed)  # don't include the symbol itself
-            transitive[changed] = list(affected)
+            direct_callers = {}
+            for changed in changed_nodes:
+                if changed in graph:
+                    direct_callers[changed] = graph[changed]
 
-        depths = {changed: self.get_depth(changed, graph) for changed in changed_nodes}
+            transitive = {}
+            for changed in changed_nodes:
+                affected = self.get_all_affected(changed, graph)
+                affected.discard(changed)  # don't include the symbol itself
+                transitive[changed] = list(affected)
 
-        layers_crossed = {}
-        for changed, affected in transitive.items():
-            layers = set(self.get_layer(n) for n in affected)
-            layers_crossed[changed] = list(layers)
+            depths = {changed: self.get_depth(changed, graph) for changed in changed_nodes}
 
-        return {
-            "changed_symbols":  changed_nodes,
-            "direct_callers":   direct_callers,
-            "transitive":       transitive,
-            "depths":           depths,
-            "layers_crossed":   layers_crossed,
-            "risk_scores":      {c: self.score(c, direct_callers, transitive, depths, layers_crossed) for c in changed_nodes},
-            "overall_risk":     max((self.score(r, direct_callers, transitive, depths, layers_crossed) for r in changed_nodes), 
-                                    key=lambda s: ["LOW","MEDIUM","HIGH","CRITICAL"].index(s)) if changed_nodes else "LOW"
-        }
+            layers_crossed = {}
+            for changed, affected in transitive.items():
+                layers = set(self.get_layer(n) for n in affected)
+                layers_crossed[changed] = list(layers)
+
+            risk_scores = {c: self.score(c, direct_callers, transitive, depths, layers_crossed) for c in changed_nodes}
+            overall_risk = max((self.score(r, direct_callers, transitive, depths, layers_crossed) for r in changed_nodes), 
+                                        key=lambda s: ["LOW","MEDIUM","HIGH","CRITICAL"].index(s)) if changed_nodes else "LOW"
+
+            changed_nodes.sort(key=lambda x: depths[x], reverse=True)
+            
+            res = {
+                "changed_symbols":  changed_nodes,
+                "direct_callers":   direct_callers,
+                "transitive":       transitive,
+                "depths":           depths,
+                "layers_crossed":   layers_crossed,
+                "risk_scores":      risk_scores,
+                "overall_risk":     overall_risk
+            }
+
+            # If there are many critical/high risk nodes, we should only choose the top 10 nodes.
+            # Else we include all.
+            
+            heap = []
+            if len(changed_nodes) > 10:
+                for node, depth in depths.items():
+                    heapq.heappush(heap, (depth, node))
+                    if len(heap) > 10:
+                        heapq.heappop(heap)
+
+            top_10_nodes: Set[str] = set()
+
+            for _, node in heap:
+                top_10_nodes.add(node)
+
+
+            llm_payload = {
+                "changed_symbols": [node for node in changed_nodes if node in top_10_nodes],
+                "transitive": {node: transitive[node] for node in changed_nodes if node in top_10_nodes},
+                "depths": {node: depths[node] for node in changed_nodes if node in top_10_nodes},
+                "risk_scores": {node: risk_scores[node] for node in changed_nodes if node in top_10_nodes},
+                "overall_risk": overall_risk
+            }
+
+            return res, llm_payload
+        except Exception as e:
+            raise PRError(str(e), 500)
+
+    async def get_gen_ai_report(self, risk_payload: dict, pr_number: int) -> dict:
+        try:
+            payload = json.dumps({
+                "changed_symbols":  risk_payload["changed_symbols"],
+                "transitive":       risk_payload["transitive"],
+                "depths":           risk_payload["depths"],
+                "risk_scores":      risk_payload["risk_scores"],
+                "overall_risk":     risk_payload["overall_risk"]
+            })
+            content = await self.gen_ai_api.fetch(get_gen_ai_prompt(payload, pr_number))
+            return content
+        except GenAIAPIError as e:
+            raise PRError(e.message, e.status_code)
+        except Exception as e:
+            raise PRError(str(e), 500)
 
     async def fetch_repo_content(
         self,
@@ -113,6 +186,11 @@ class PRService():
         pr_number: int,
         max_depth: int = 5
     ) -> Dict[str, List[str]]:
+
+        if owner == "mock" and repo == "mock" and pr_number == 1:
+            await asyncio.sleep(3)
+            return MOCK_DATA.get("graph", {}).get("graph", {}), MOCK_DATA.get("graph", {}).get("nodes", [])
+
         try:
             pr_data = await self.github_api.fetch_pr(owner, repo, pr_number)
             branch = pr_data.get("head", {}).get("ref", "main")
@@ -331,14 +409,13 @@ class PRService():
                             "call": callee_name,
                             "reason": "Could not resolve confidently"
                         })
-                        
-            return {
+
+            graph_content = {
                 "graph": {k: list(v) for k, v in adjacency_graph.items()},
-                "unresolved_calls": unresolved_calls,
-                "nodes": nodes,
-                "urls": all_python_urls,
-                "names": name_index
+                "names": {key: value for key, value in name_index.items()}
             }
+            graph_nodes = nodes
+            return graph_content, graph_nodes
 
         except GitHubAPIError as e:
             raise PRError(e.message, e.status_code)

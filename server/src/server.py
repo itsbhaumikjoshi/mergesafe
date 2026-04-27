@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from controllers import * 
 from services import *
 from adapters import *
+from parsers import *
 
 class Server():
 
@@ -38,7 +39,9 @@ class Server():
 
         #PR
         github_api = GitHubAPI()
-        pr_service = PRService(github_api)
+        gen_ai_api = GenAIAPI()
+        python_parser = PythonDiffParser()
+        pr_service = PRService(github_api, gen_ai_api, python_parser)
         self.pr_controller = PRController(pr_service)
 
         self.register_routes()
