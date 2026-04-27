@@ -65,7 +65,9 @@ class AuthController:
             if not user:
                 return JSONResponse(status_code=401, content={"message": "Unauthorized"})
             return {
+                "id": user.id,
+                "email": user.email,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
-                "email": user.email
+                "created_at": user.created_at
             }
