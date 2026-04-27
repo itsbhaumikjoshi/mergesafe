@@ -41,3 +41,16 @@ export const register = async ({ email, password, firstName, lastName }: { email
         throw { message: "Network error or server is unreachable", code: "NETWORK_ERROR" };
     }
 }
+
+export const logout = async () => {
+    try {
+        await axios.get(BASE_URL + "/auth/logout", {
+            withCredentials: true
+        });
+    } catch (error: any) {
+        if (error.response && error.response.data) {
+            throw error.response.data;
+        }
+        throw { message: "Network error or server is unreachable", code: "NETWORK_ERROR" };
+    }
+}
