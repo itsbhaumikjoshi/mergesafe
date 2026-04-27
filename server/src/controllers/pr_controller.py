@@ -1,7 +1,8 @@
+import json
 from pydantic import BaseModel
 from fastapi import Request
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import StreamingResponse
 from services import PRService, PRError
 
 class BlastRadiusRequest(BaseModel):
@@ -14,30 +15,75 @@ class PRController():
         self.pr_service = pr_service
 
     def register_routes(self, app: FastAPI):
-        @app.post("/api/v1/compute_blast_radius")
-        async def compute(request: Request, data: BlastRadiusRequest):
-            try:
-                user = request.state.user
-                if not user:
-                    return JSONResponse(status_code=401, content={"message": "Unauthorized"})
+        @app.get("/api/v1/get_blast_radius/{owner}/{repo}/{pr_number}")
+        async def get_blast_radius(request: Request, owner: str, repo: str, pr_number: int):
+            async def event_generator():
+                try:
+                    user = request.state.user
+                    if not user:
+                        yield f"data: {json.dumps({'error': 'Unauthorized', 'status': 401})}\n\n"
+                        return
 
-                owner = data.owner
-                repo = data.repo
-                pr_number = data.pr_number
+                    if not owner or not repo or not pr_number:
+                        yield f"data: {json.dumps({'error': 'Missing required fields', 'status': 400})}\n\n"
+                        return
 
-                if not owner or not repo or not pr_number:
-                    return JSONResponse(status_code=400, content={"message": "Missing required fields"})
+                    if await request.is_disconnected():
+                        return
 
-                page = 1 # TODO: Implement pagination
-                grph = await self.pr_service.fetch_repo_content(owner, repo, pr_number)
-                nodes = await self.pr_service.get_pr_file_change_nodes(owner, repo, pr_number, page)
-                res = await self.pr_service.compute_blast_radius(nodes, grph.get("graph", {}), grph.get("nodes", []))
-                return {
-                    "graph":grph,
-                    "nodes":nodes,
-                    "result": res
+                    yield f"data: {json.dumps({'status': 'FETCHING_PR_NODES', 'message': 'Fetching Pull Requests file changes...'})}\n\n"
+                    page = 1 # TODO: Implement pagination
+                    nodes = await self.pr_service.get_pr_file_change_nodes(owner, repo, pr_number, page)
+                    
+                    if await request.is_disconnected():
+                        return
+                    
+                    yield f"data: {json.dumps({'status': 'FOUND_PR_NODES', 'nodes': nodes})}\n\n"
+
+                    if await request.is_disconnected():
+                        return
+                    
+                    yield f"data: {json.dumps({'status': 'CRAWLING_REPO', 'message': f'Creating graph for {owner}/{repo}...'})}\n\n"
+                    content, graph_nodes = await self.pr_service.fetch_repo_content(owner, repo, pr_number)
+                    
+                    if await request.is_disconnected():
+                        return
+                    
+                    yield f"data: {json.dumps({'status': 'CRAWLED_REPO', 'content': content})}\n\n"
+
+                    if await request.is_disconnected():
+                        return
+
+                    yield f"data: {json.dumps({'status': 'COMPUTING_BLAST_RADIUS', 'message': 'Computing blast radius...'})}\n\n"
+                    res, llm_payload = await self.pr_service.compute_blast_radius(nodes, content.get("graph", {}), graph_nodes)
+                    
+                    if await request.is_disconnected():
+                        return
+
+                    yield f"data: {json.dumps({'status': 'COMPUTED_BLAST_RADIUS', 'res': res, 'llm_payload': llm_payload})}\n\n"
+
+                    if await request.is_disconnected():
+                        return
+
+                    yield f"data: {json.dumps({'status': 'COMPUTING_GEN_AI_REPORT', 'message': 'Generating risk assessment report...'})}\n\n"
+                    gen_ai_report = await self.pr_service.get_gen_ai_report(llm_payload, pr_number)
+                    
+                    if await request.is_disconnected():
+                        return
+
+                    yield f"data: {json.dumps({'status': 'COMPUTED_GEN_AI_REPORT', 'gen_ai_report': gen_ai_report})}\n\n"
+
+                except PRError as e:
+                    yield f"data: {json.dumps({'error': e.message, 'status': e.status_code})}\n\n"
+                except Exception as e:
+                    yield f"data: {json.dumps({'error': str(e), 'status': 500})}\n\n"
+
+            return StreamingResponse(
+                event_generator(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no"
                 }
-            except PRError as e:
-                return JSONResponse(status_code=e.status_code, content={"message": e.message})
-            except Exception as e:
-                return JSONResponse(status_code=500, content={"message": str(e)})
+            )
