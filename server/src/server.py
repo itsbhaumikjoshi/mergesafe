@@ -36,8 +36,14 @@ class Server():
         self.auth_controller = AuthController(auth_service)
         self.oauth_controller = OAuthController(oauth_service, FRONTEND_URL)
 
+        #PR
+        github_api = GitHubAPI()
+        pr_service = PRService(github_api)
+        self.pr_controller = PRController(pr_service)
+
         self.register_routes()
 
     def register_routes(self):
         self.auth_controller.register_routes(self.app)
         self.oauth_controller.register_routes(self.app)
+        self.pr_controller.register_routes(self.app)
