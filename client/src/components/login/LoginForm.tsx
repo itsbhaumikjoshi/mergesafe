@@ -82,6 +82,32 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
         Login with Google
       </Button>
 
+      <Button
+        variant="outlined"
+        color="secondary"
+        fullWidth
+        sx={{ mt: 1, textTransform: 'none', fontWeight: 600 }}
+        onClick={async () => {
+          setEmail('dev@test.com');
+          setPassword('password');
+          setIsLoading(true);
+          setError(null);
+          try {
+            await login({ email: 'dev@test.com', password: 'password' });
+            const user = await fetchUserData();
+            setUser(user);
+            navigate('/app');
+          } catch (err: any) {
+            setError(err.message || 'An error occurred during login');
+          } finally {
+            setIsLoading(false);
+          }
+        }}
+        disabled={isLoading}
+      >
+        Login with Dev Creds
+      </Button>
+
       <Box sx={{ textAlign: 'center', mt: 2 }}>
         <Typography variant="body2" color="text.secondary">
           Don't have an account?{' '}
