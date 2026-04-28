@@ -1,6 +1,6 @@
 import os
 import httpx
-from constants import GEN_AI_MODEL, GEN_AI_API_URL, get_gen_ai_prompt
+from src.constants import GEN_AI_MODEL, GEN_AI_API_URL, get_gen_ai_prompt
 
 class GenAIAPIError(Exception):
     def __init__(self, message: str, status_code: int):

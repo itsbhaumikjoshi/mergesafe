@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from fastapi import Request
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from mock import MOCK_DATA
-from services import PRService, PRError
+from src.mock import MOCK_DATA
+from src.services import PRService, PRError
 
 class BlastRadiusRequest(BaseModel):
     owner: str
