@@ -39,7 +39,7 @@ class AuthController:
         async def login(data: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
             try:
                 token = await self.auth_service.login(db, data.email, data.password)
-                response.set_cookie(key="sid", value=token, httponly=True, samesite="none", secure=True, max_age=60*60*24*30)
+                response.set_cookie(key="sid", value=token, httponly=True, samesite="None", secure=True, max_age=60*60*24*30)
             except AuthError as e:
                 return JSONResponse(status_code=e.status_code, content={"message": e.message})
             except Exception as e:
@@ -49,7 +49,7 @@ class AuthController:
         async def register(data: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)):
             try:
                 token = await self.auth_service.register(db, data.model_dump())
-                response.set_cookie(key="sid", value=token, httponly=True, samesite="none", secure=True, max_age=60*60*24*30)
+                response.set_cookie(key="sid", value=token, httponly=True, samesite="None", secure=True, max_age=60*60*24*30)
             except AuthError as e:
                 return JSONResponse(status_code=e.status_code, content={"message": e.message})
             except Exception as e:
