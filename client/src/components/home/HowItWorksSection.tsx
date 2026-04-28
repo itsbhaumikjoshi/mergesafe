@@ -4,7 +4,7 @@ import { sectionContainerStyles, sectionTitleStyles, sectionSubtitleStyles, flow
 const HowItWorksSection = () => {
   const steps = [
     { num: 1, title: 'Crawl Repository', desc: 'Traverse the repository (via GitHub API) and collect all Python files.' },
-    { num: 2, title: 'Build Call Graph', desc: 'Parse each file using tree-sitter to extract function, class, and method.' },
+    { num: 2, title: 'Build Call Graph', desc: 'Parse each file using tree-sitter to extract functions, classes, and methods.' },
     { num: 3, title: 'Parse PR Diffs', desc: 'Parse pull request diffs to identify modified functions, classes, or methods.' },
     { num: 4, title: 'Compute Impact', desc: 'Traverse the call graph to identify all direct and indirect dependents of modified symbols.' },
     { num: 5, title: 'Generate Report', desc: 'Deliver a clear, human-readable blast radius report directly to the PR.' },
