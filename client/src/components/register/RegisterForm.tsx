@@ -1,0 +1,123 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Box, TextField, Button, Typography, Divider, Stack, Alert, CircularProgress } from '@mui/material';
+import GoogleIcon from '@mui/icons-material/Google';
+import { formContainerStyles, submitButtonStyles, googleButtonStyles, dividerStyles } from '../../styles/register';
+import { register, fetchUserData } from '../../adapters/backend';
+import { useAuth } from '../../context/AuthContext';
+
+interface RegisterFormProps {
+  onSwitchToLogin: () => void;
+}
+
+const RegisterForm = ({ onSwitchToLogin }: RegisterFormProps) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { setUser } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      await register({ firstName, lastName, email, password });
+      const user = await fetchUserData();
+      setUser(user);
+      navigate('/app');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during registration');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Box component="form" onSubmit={handleSubmit} sx={formContainerStyles}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      <Stack direction="row" spacing={2}>
+        <TextField
+          fullWidth
+          label="First Name"
+          variant="outlined"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          required
+        />
+        <TextField
+          fullWidth
+          label="Last Name"
+          variant="outlined"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          required
+        />
+      </Stack>
+      
+      <TextField
+        fullWidth
+        label="Email"
+        type="email"
+        variant="outlined"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+      <TextField
+        fullWidth
+        label="Password"
+        type="password"
+        variant="outlined"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+      />
+      
+      <Button
+        type="submit"
+        variant="contained"
+        color="primary"
+        fullWidth
+        sx={submitButtonStyles}
+        disabled={isLoading}
+      >
+        {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Register'}
+      </Button>
+
+      <Divider sx={dividerStyles}>OR</Divider>
+
+      <Button
+        variant="outlined"
+        fullWidth
+        startIcon={<GoogleIcon />}
+        sx={googleButtonStyles}
+      >
+        Continue with Google
+      </Button>
+
+      <Box sx={{ textAlign: 'center', mt: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          Already have an account?{' '}
+          <Button 
+            variant="text" 
+            color="primary" 
+            onClick={onSwitchToLogin}
+            sx={{ p: 0, minWidth: 'auto', textTransform: 'none', fontWeight: 600 }}
+          >
+            Login
+          </Button>
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
+export default RegisterForm;
