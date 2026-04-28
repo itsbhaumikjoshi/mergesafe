@@ -3,7 +3,7 @@ import httpx
 import os
 import secrets
 
-from constants import GOOGLE_OAUTH_TOKEN_URL, GOOGLE_OAUTH_USER_INFO_URL
+from src.constants import GOOGLE_OAUTH_TOKEN_URL, GOOGLE_OAUTH_USER_INFO_URL
 
 class GoogleAPIError(Exception):
     def __init__(self, message: str, status_code: int):

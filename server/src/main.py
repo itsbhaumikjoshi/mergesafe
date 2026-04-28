@@ -1,6 +1,6 @@
 import os
 import uvicorn
-from server import Server
+from src.server import Server
 from dotenv import load_dotenv
 
 load_dotenv()

@@ -4,9 +4,9 @@ from fastapi.responses import RedirectResponse
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
-from helpers.db import get_db
-from services import OAuthError, OAuthService
-from adapters import GoogleAPIError
+from src.helpers.db import get_db
+from src.services import OAuthError, OAuthService
+from src.adapters import GoogleAPIError
 
 class OAuthController:
     def __init__(self, oauth_service: OAuthService, redirect_url: str):

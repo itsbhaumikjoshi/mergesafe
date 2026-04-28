@@ -2,7 +2,7 @@ import base64
 import binascii
 import os
 import httpx
-from constants import get_github_pr_url, get_github_pr_files_url
+from src.constants import get_github_pr_url, get_github_pr_files_url
 
 class GitHubAPIError(Exception):
     def __init__(self, message: str, status_code: int):

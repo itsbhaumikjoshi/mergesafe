@@ -1,7 +1,7 @@
 import os
 import bcrypt
-from .jwt_service import JWTService
-from repositories import UserRepo
+from src.services.jwt_service import JWTService
+from src.repositories import UserRepo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 class AuthError(Exception):

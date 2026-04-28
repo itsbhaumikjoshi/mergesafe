@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from repositories import UserRepo
-from .jwt_service import JWTService
-from adapters import GoogleOAuthAPI
+from src.repositories import UserRepo
+from src.services.jwt_service import JWTService
+from src.adapters import GoogleOAuthAPI
 
 class OAuthError(Exception):
     def __init__(self, message: str, status_code: int):

@@ -1,12 +1,12 @@
 import os
-from helpers.db import engine, Base
+from src.helpers.db import engine, Base
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from controllers import * 
-from services import *
-from adapters import *
-from parsers import *
+from src.controllers import * 
+from src.services import *
+from src.adapters import *
+from src.parsers import *
 
 class Server():
 
@@ -40,7 +40,7 @@ class Server():
         google_oauth_api = GoogleOAuthAPI()
         oauth_service = OAuthService(jwt_service, google_oauth_api)
         self.auth_controller = AuthController(auth_service)
-        self.oauth_controller = OAuthController(oauth_service, FRONTEND_URL)
+        self.oauth_controller = OAuthController(oauth_service, FRONTEND_URL + '/app')
 
         #PR
         github_api = GitHubAPI()

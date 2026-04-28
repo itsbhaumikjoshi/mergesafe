@@ -4,10 +4,10 @@ import json
 import urllib.parse
 from typing import List, Dict, Set
 
-from adapters import GenAIAPI, GenAIAPIError, GitHubAPI, GitHubAPIError
-from constants import get_gen_ai_prompt, get_github_repo_content_for_branch
-from mock import MOCK_DATA
-from parsers.python_parser import PythonDiffParser
+from src.adapters import GenAIAPI, GenAIAPIError, GitHubAPI, GitHubAPIError
+from src.constants import get_gen_ai_prompt, get_github_repo_content_for_branch
+from src.mock import MOCK_DATA
+from src.parsers.python_parser import PythonDiffParser
 
 class PRError(Exception):
     def __init__(self, message: str, status_code: int):

@@ -3,8 +3,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from helpers.db import get_db, AsyncSessionLocal
-from services import AuthService, AuthError
+from src.helpers.db import get_db, AsyncSessionLocal
+from src.services import AuthService, AuthError
 
 class LoginRequest(BaseModel):
     email: str
