@@ -88,12 +88,14 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
         fullWidth
         sx={{ mt: 1, textTransform: 'none', fontWeight: 600 }}
         onClick={async () => {
-          setEmail('dev@test.com');
-          setPassword('password');
+          const test_email = import.meta.env.VITE_TEST_EMAIL;
+          const test_password = import.meta.env.VITE_TEST_PASSWORD;
+          setEmail(test_email);
+          setPassword(test_password);
           setIsLoading(true);
           setError(null);
           try {
-            await login({ email: 'dev@test.com', password: 'password' });
+            await login({ email: test_email, password: test_password });
             const user = await fetchUserData();
             setUser(user);
             navigate('/app');

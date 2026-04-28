@@ -1,8 +1,11 @@
+import asyncio
 import json
+import os
 from pydantic import BaseModel
 from fastapi import Request
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
+from mock import MOCK_DATA
 from services import PRService, PRError
 
 class BlastRadiusRequest(BaseModel):
@@ -23,6 +26,8 @@ class PRController():
                     if not user:
                         yield f"data: {json.dumps({'error': 'Unauthorized', 'status': 401})}\n\n"
                         return
+                    
+                    IS_TEST_EMAIL = os.getenv("TEST_EMAIL") == user.email
 
                     if not owner or not repo or not pr_number:
                         yield f"data: {json.dumps({'error': 'Missing required fields', 'status': 400})}\n\n"
@@ -33,7 +38,14 @@ class PRController():
 
                     yield f"data: {json.dumps({'status': 'FETCHING_PR_NODES', 'message': 'Fetching Pull Requests file changes...'})}\n\n"
                     page = 1 # TODO: Implement pagination
-                    nodes = await self.pr_service.get_pr_file_change_nodes(owner, repo, pr_number, page)
+                    
+                    nodes = []
+                    
+                    if IS_TEST_EMAIL:
+                        await asyncio.sleep(7)
+                        nodes = MOCK_DATA.get("nodes")
+                    else:
+                        nodes = await self.pr_service.get_pr_file_change_nodes(owner, repo, pr_number, page)
                     
                     if await request.is_disconnected():
                         return
@@ -44,7 +56,15 @@ class PRController():
                         return
                     
                     yield f"data: {json.dumps({'status': 'CRAWLING_REPO', 'message': f'Creating graph for {owner}/{repo}...'})}\n\n"
-                    content, graph_nodes = await self.pr_service.fetch_repo_content(owner, repo, pr_number)
+                    
+                    content, graph_nodes = {}, {}
+                    
+                    if IS_TEST_EMAIL:
+                        await asyncio.sleep(7)
+                        content = MOCK_DATA.get("content")
+                        graph_nodes = MOCK_DATA.get("graph_nodes")
+                    else:
+                        content, graph_nodes = await self.pr_service.fetch_repo_content(owner, repo, pr_number)
                     
                     if await request.is_disconnected():
                         return
@@ -55,7 +75,15 @@ class PRController():
                         return
 
                     yield f"data: {json.dumps({'status': 'COMPUTING_BLAST_RADIUS', 'message': 'Computing blast radius...'})}\n\n"
-                    res, llm_payload = await self.pr_service.compute_blast_radius(nodes, content.get("graph", {}), graph_nodes)
+
+                    res, llm_payload = {}, {}
+                    
+                    if IS_TEST_EMAIL:
+                        await asyncio.sleep(7)
+                        res = MOCK_DATA.get("res")
+                        llm_payload = MOCK_DATA.get("llm_payload")
+                    else:
+                        res, llm_payload = await self.pr_service.compute_blast_radius(nodes, content.get("graph", {}), graph_nodes)
                     
                     if await request.is_disconnected():
                         return
@@ -66,7 +94,14 @@ class PRController():
                         return
 
                     yield f"data: {json.dumps({'status': 'COMPUTING_GEN_AI_REPORT', 'message': 'Generating risk assessment report...'})}\n\n"
-                    gen_ai_report = await self.pr_service.get_gen_ai_report(llm_payload, pr_number)
+
+                    gen_ai_report = ""
+                    
+                    if IS_TEST_EMAIL:
+                        await asyncio.sleep(7)
+                        gen_ai_report = MOCK_DATA.get("gen_ai_report")
+                    else:
+                        gen_ai_report = await self.pr_service.get_gen_ai_report(llm_payload, pr_number)
                     
                     if await request.is_disconnected():
                         return
