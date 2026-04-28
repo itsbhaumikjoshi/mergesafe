@@ -41,7 +41,7 @@ const ProblemSolutionSection = () => {
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                     <Typography variant="body2" color="text.secondary">
-                      2. How far the impact propagates?
+                      2. How far does the impact propagate?
                     </Typography>
                   </Box>
                 </Box>

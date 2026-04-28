@@ -64,8 +64,7 @@ const AppPage = () => {
           </Typography>
         </Box>
 
-        <PRInput onSubmit={handleAnalyzePR} isLoading={isProcessing} />
-
+        <PRInput onSubmit={handleAnalyzePR} isLoading={isProcessing} user={user} />
         <StepperContainer prNumber={prNumber} steps={steps} activeStep={activeStep} />
       </Container>
 

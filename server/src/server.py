@@ -11,7 +11,12 @@ from parsers import *
 class Server():
 
     def __init__(self):
-        self.app = FastAPI()
+        IS_PROD = os.getenv("prod") == "true"
+        self.app = FastAPI(
+            docs_url=None if IS_PROD else "/docs",
+            redoc_url=None if IS_PROD else "/redoc",
+            openapi_url=None if IS_PROD else "/openapi.json"
+        )
 
         @self.app.on_event("startup")
         async def startup():

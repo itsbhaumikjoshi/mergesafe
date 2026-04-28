@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
-import { Box, TextField, Button, CircularProgress, Typography, Card } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, TextField, Button, CircularProgress, Typography, Card, Alert } from '@mui/material';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import { prInputContainerStyles, cardStyles } from '../../styles/app';
+import type { User } from '../../adapters/types';
 
 interface PRInputProps {
   onSubmit: (url: string) => void;
+  user: User | null;
   isLoading: boolean;
 }
 
-const PRInput: React.FC<PRInputProps> = ({ onSubmit, isLoading }) => {
+const PRInput: React.FC<PRInputProps> = ({ onSubmit, user, isLoading }) => {
   const [url, setUrl] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -17,6 +19,12 @@ const PRInput: React.FC<PRInputProps> = ({ onSubmit, isLoading }) => {
       onSubmit(url.trim());
     }
   };
+
+  useEffect(() => {
+    if(user?.email === import.meta.env.VITE_TEST_EMAIL) {
+      setUrl("https://github.com/mock/test/pull/123");
+    }
+  }, [user]);
 
   return (
     <Card sx={cardStyles} elevation={0}>
@@ -28,6 +36,11 @@ const PRInput: React.FC<PRInputProps> = ({ onSubmit, isLoading }) => {
         <Typography variant="body2" color="text.secondary">
           Enter the URL of a GitHub Pull Request to generate a comprehensive structural impact report.
         </Typography>
+        {user?.email === import.meta.env.VITE_TEST_EMAIL && (
+          <Alert severity="info" sx={{ mt: 2, mb: 1, borderRadius: 2 }}>
+            You are logged in with dev credentials. Only dummy responses will be shown.
+          </Alert>
+        )}
       </Box>
 
       <Box component="form" onSubmit={handleSubmit} sx={prInputContainerStyles}>
