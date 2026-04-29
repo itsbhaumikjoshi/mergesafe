@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ThemeProvider, CssBaseline, Box, Snackbar, Alert } from '@mui/material';
+import { Box, Snackbar, Alert } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
-import { theme, containerStyles } from '../../styles/home';
+import { containerStyles } from '../../styles/home';
 import HeroSection from './HeroSection';
 import ProblemSolutionSection from './ProblemSolutionSection';
 import HowItWorksSection from './HowItWorksSection';
@@ -40,8 +40,7 @@ const LandingPage = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <>
       <Box sx={containerStyles}>
         <HeroSection onOpenAuth={handleOpenAuthModal} />
         <ProblemSolutionSection />
@@ -63,7 +62,7 @@ const LandingPage = () => {
           {errorMsg}
         </Alert>
       </Snackbar>
-    </ThemeProvider>
+    </>
   );
 };
 

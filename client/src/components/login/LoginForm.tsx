@@ -26,7 +26,11 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
     try {
       await login({ email, password });
       const user = await fetchUserData();
-      setUser(user);
+      setUser({
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name
+      });
       navigate('/app');
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
@@ -60,7 +64,7 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
         onChange={(e) => setPassword(e.target.value)}
         required
       />
-      
+
       <Button
         type="submit"
         variant="contained"
@@ -99,7 +103,11 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
           try {
             await login({ email: test_email, password: test_password });
             const user = await fetchUserData();
-            setUser(user);
+            setUser({
+              email: user.email,
+              firstName: user.first_name,
+              lastName: user.last_name
+            });
             navigate('/app');
           } catch (err: any) {
             setError(err.message || 'An error occurred during login');
@@ -115,9 +123,9 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
       <Box sx={{ textAlign: 'center', mt: 2 }}>
         <Typography variant="body2" color="text.secondary">
           Don't have an account?{' '}
-          <Button 
-            variant="text" 
-            color="primary" 
+          <Button
+            variant="text"
+            color="primary"
             onClick={onSwitchToRegister}
             sx={{ p: 0, minWidth: 'auto', textTransform: 'none', fontWeight: 600 }}
           >

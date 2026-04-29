@@ -19,7 +19,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const userData = await fetchUserData();
         if (userData) {
-          setUser(userData);
+          setUser({
+            email: userData.email,
+            firstName: userData.first_name,
+            lastName: userData.last_name
+          });
         }
       } catch (error) {
         console.error("Failed to load user data:", error);
