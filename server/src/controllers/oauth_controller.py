@@ -27,7 +27,7 @@ class OAuthController:
                     key="sid",
                     value=token,
                     httponly=True,
-                    samesite="none",
+                    samesite="None",
                     secure=True,
                     max_age=60*60*24*30,
                     path="/",
