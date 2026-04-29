@@ -1,8 +1,8 @@
+from urllib.parse import urlencode
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import RedirectResponse
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse
 
 from src.helpers.db import get_db
 from src.services import OAuthError, OAuthService
@@ -20,9 +20,10 @@ class OAuthController:
             try:
                 code = request.query_params.get("code")
                 if not code:
-                    return JSONResponse(status_code=400, content={"message": "Authorization code not provided"})
+                    params = urlencode({"error": "Authorization code not provided", "code": 400})
+                    return RedirectResponse(url=f"{self.redirect_url}/?{params}", status_code=302)
                 token = await self.oauth_service.google_oauth(db, code)
-                res = RedirectResponse(url=self.redirect_url, status_code=302)
+                res = RedirectResponse(url=self.redirect_url + '/app', status_code=302)
                 res.set_cookie(
                     key="sid",
                     value=token,
@@ -34,8 +35,11 @@ class OAuthController:
                 )
                 return res
             except OAuthError as e:
-                return JSONResponse(status_code=e.status_code, content={"message": e.message})
+                params = urlencode({"error": e.message, code: e.status_code})
+                return RedirectResponse(url=f"{self.redirect_url}/?{params}", status_code=302)
             except GoogleAPIError as e:
-                return JSONResponse(status_code=e.status_code, content={"message": e.message})
+                params = urlencode({"error": e.message, code: e.status_code})
+                return RedirectResponse(url=f"{self.redirect_url}/?{params}", status_code=302)
             except Exception as e:
-                return JSONResponse(status_code=500, content={"message": str(e)})
+                params = urlencode({"error": str(e), code: 500})
+                return RedirectResponse(url=f"{self.redirect_url}/?{params}", status_code=302)

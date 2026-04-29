@@ -56,8 +56,8 @@ class GoogleOAuthAPI:
 
             user_data = {
                 "email": user.get("email"),
-                "first_name": user.get("given_name"),
-                "last_name": user.get("family_name"),
+                "first_name": user.get("given_name") or "Google",
+                "last_name": user.get("family_name") or "User",
                 "password": self.generate_password()
             }
 
