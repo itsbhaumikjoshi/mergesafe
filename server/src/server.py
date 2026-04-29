@@ -40,7 +40,7 @@ class Server():
         google_oauth_api = GoogleOAuthAPI()
         oauth_service = OAuthService(jwt_service, google_oauth_api)
         self.auth_controller = AuthController(auth_service)
-        self.oauth_controller = OAuthController(oauth_service, FRONTEND_URL + '/app')
+        self.oauth_controller = OAuthController(oauth_service, FRONTEND_URL)
 
         #PR
         github_api = GitHubAPI()
