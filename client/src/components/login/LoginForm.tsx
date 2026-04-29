@@ -5,6 +5,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 import { formContainerStyles, submitButtonStyles, googleButtonStyles, dividerStyles } from '../../styles/login';
 import { login, fetchUserData } from '../../adapters/backend';
 import { useAuth } from '../../context/AuthContext';
+import { googleOAuthUrl } from '../../helpers';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -78,6 +79,7 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
         fullWidth
         startIcon={<GoogleIcon />}
         sx={googleButtonStyles}
+        onClick={() => window.location.href = googleOAuthUrl()}
       >
         Login with Google
       </Button>

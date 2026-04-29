@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 
-import { extractVerdicts, extractRecommendations, parseSymbol } from "../../helpers";
+import { extractVerdicts, extractRecommendations, parseSymbol, stripMarkdown } from "../../helpers";
 import {
   RISK_CONFIG,
   BANNER_MSG,
@@ -14,8 +14,14 @@ import {
   metricCardSx,
   sectionTitleSx,
   symbolCardSx,
+  symbolHeaderSx,
+  symbolBadgeRowSx,
+  chipContainerSx,
   chipSx,
   verdictSx,
+  heatmapTableWrapperSx,
+  heatmapMobileWrapperSx,
+  heatmapMobileCardSx,
   heatmapTableSx,
   tableHeadCellSx,
   tableBodyCellSx,
@@ -58,10 +64,10 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const MetricCard: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <Box sx={metricCardSx}>
-    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mb: 0.5 }}>
+    <Typography sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, color: 'text.secondary', mb: 0.5 }}>
       {label}
     </Typography>
-    <Box sx={{ fontSize: '1.4rem', fontWeight: 500, color: 'text.primary' }}>
+    <Box sx={{ fontSize: { xs: '1.25rem', sm: '1.4rem' }, fontWeight: 500, color: 'text.primary' }}>
       {value}
     </Box>
   </Box>
@@ -69,6 +75,12 @@ const MetricCard: React.FC<{ label: string; value: React.ReactNode }> = ({ label
 
 const Chip: React.FC<{ label: string }> = ({ label }) => (
   <Box component="span" sx={chipSx}>{label}</Box>
+);
+
+const DepthBar: React.FC<{ risk: RiskLevel; pct: number }> = ({ risk, pct }) => (
+  <Box sx={depthBarTrackSx}>
+    <Box sx={{ height: '100%', borderRadius: 2, width: `${Math.max(pct, 5)}%`, bgcolor: RISK_CONFIG[risk].barColor }} />
+  </Box>
 );
 
 const BlastRadiusReport: React.FC<BlastRadiusReportProps> = ({
@@ -113,6 +125,16 @@ const BlastRadiusReport: React.FC<BlastRadiusReportProps> = ({
     return [...new Set(all)].filter((s) => parseSymbol(s).layer === 'controller');
   }, [transitive]);
 
+  const renderMarkdownInline = (text: string): React.ReactNode => {
+    const parts = text.split(/(\*\*.+?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  }
+
   return (
     <Box sx={reportWrapperSx}>
 
@@ -120,7 +142,7 @@ const BlastRadiusReport: React.FC<BlastRadiusReportProps> = ({
 
       <Box sx={riskBannerSx(risk)}>
         <Box sx={riskDotSx(risk)} />
-        <Typography sx={{ fontSize: '0.8rem', color: RISK_CONFIG[risk].bannerText, lineHeight: 1.5 }}>
+        <Typography sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' }, color: RISK_CONFIG[risk].bannerText, lineHeight: 1.5 }}>
           <Box component="strong">{risk} risk</Box> — {BANNER_MSG[risk]}
         </Typography>
       </Box>
@@ -148,16 +170,30 @@ const BlastRadiusReport: React.FC<BlastRadiusReportProps> = ({
           return (
             <Box key={sym} sx={symbolCardSx}>
 
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 1.25 }}>
-                <Box>
-                  <Typography sx={{ fontFamily: 'monospace', fontSize: '0.72rem', lineHeight: 1.5, wordBreak: 'break-all', color: 'text.primary' }}>
+              <Box sx={symbolHeaderSx}>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography sx={{
+                    fontFamily: 'monospace',
+                    fontSize: { xs: '0.7rem', sm: '0.72rem' },
+                    lineHeight: 1.5,
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    color: 'text.primary',
+                  }}>
                     {name}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.65rem', fontFamily: 'monospace', color: 'text.secondary', mt: 0.3 }}>
+                  <Typography sx={{
+                    fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                    fontFamily: 'monospace',
+                    color: 'text.secondary',
+                    mt: 0.3,
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                  }}>
                     {file}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.75, flexShrink: 0 }}>
+                <Box sx={symbolBadgeRowSx}>
                   <RiskPill risk={r} />
                   <LayerBadge layer={layer} />
                 </Box>
@@ -165,10 +201,10 @@ const BlastRadiusReport: React.FC<BlastRadiusReportProps> = ({
 
               {callers.length > 0 && (
                 <Box sx={{ mb: 1 }}>
-                  <Typography sx={{ fontSize: '0.65rem', color: 'text.secondary', mb: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.62rem', color: 'text.secondary', mb: 0.5 }}>
                     Direct callers:
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  <Box sx={chipContainerSx}>
                     {callers.map((c) => <Chip key={c} label={parseSymbol(c).name} />)}
                   </Box>
                 </Box>
@@ -176,28 +212,80 @@ const BlastRadiusReport: React.FC<BlastRadiusReportProps> = ({
 
               {affected.length > 0 ? (
                 <Box>
-                  <Typography sx={{ fontSize: '0.65rem', color: 'text.secondary', mb: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.62rem', color: 'text.secondary', mb: 0.5 }}>
                     Transitively affects {affected.length} symbol{affected.length !== 1 ? 's' : ''}:
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  <Box sx={chipContainerSx}>
                     {affected.map((a) => <Chip key={a} label={parseSymbol(a).name} />)}
                   </Box>
                 </Box>
               ) : (
-                <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+                <Typography sx={{ fontSize: { xs: '0.7rem', sm: '0.72rem' }, color: 'text.secondary' }}>
                   No transitive callers — isolated change
                 </Typography>
               )}
 
-              {verdict && <Box sx={verdictSx}>{verdict}</Box>}
+              {verdict && (
+                <Box sx={verdictSx}>{stripMarkdown(verdict)}</Box>
+              )}
             </Box>
           );
         })}
       </Box>
 
       <Box sx={{ mb: 3 }}>
+        <SectionTitle>Merge recommendations</SectionTitle>
+        {recommendations.length === 0 ? (
+          <Typography sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' }, color: 'text.secondary', fontStyle: 'italic' }}>
+            No recommendations generated.
+          </Typography>
+        ) : (
+          <Box component="ol" sx={{ listStyle: 'none', p: 0, m: 0 }}>
+            {recommendations.map((rec, i) => (
+              <Box component="li" key={i} sx={recItemSx}>
+                <Box sx={recNumSx}>{i + 1}</Box>
+                <Box component="span">{renderMarkdownInline(rec)}</Box>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
         <SectionTitle>Blast radius heatmap</SectionTitle>
-        <Box sx={{ overflowX: 'auto' }}>
+        <Box sx={heatmapMobileWrapperSx}>
+          {sortedSymbols.map((sym) => {
+            const { name, layer } = parseSymbol(sym);
+            const r = risk_scores[sym] || 'LOW';
+            const affectedCount = (transitive[sym] || []).length;
+            const depth = depths[sym] || 0;
+            const pct = maxDepth > 0 ? (depth / maxDepth) * 100 : 0;
+
+            return (
+              <Box key={sym} sx={heatmapMobileCardSx}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
+                  <Typography sx={{ fontFamily: 'monospace', fontSize: '0.68rem', color: 'text.primary', wordBreak: 'break-word', overflowWrap: 'anywhere', flex: 1, mr: 1 }}>
+                    {name}
+                  </Typography>
+                  <RiskPill risk={r} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.58rem', color: 'text.secondary' }}>Affected</Typography>
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'text.primary' }}>{affectedCount}</Typography>
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 80 }}>
+                    <Typography sx={{ fontSize: '0.58rem', color: 'text.secondary', mb: 0.25 }}>Depth {depth}</Typography>
+                    <DepthBar risk={r} pct={pct} />
+                  </Box>
+                  <LayerBadge layer={layer} />
+                </Box>
+              </Box>
+            );
+          })}
+        </Box>
+
+        <Box sx={heatmapTableWrapperSx}>
           <Box component="table" sx={heatmapTableSx}>
             <Box component="thead">
               <Box component="tr">
@@ -226,16 +314,10 @@ const BlastRadiusReport: React.FC<BlastRadiusReportProps> = ({
                     </Box>
                     <Box component="td" sx={cellSx}>
                       <Typography sx={{ fontSize: '0.85rem', color: 'text.primary' }}>{depth}</Typography>
-                      <Box sx={depthBarTrackSx}>
-                        <Box sx={{ height: '100%', borderRadius: 2, width: `${Math.max(pct, 5)}%`, bgcolor: RISK_CONFIG[r].barColor }} />
-                      </Box>
+                      <DepthBar risk={r} pct={pct} />
                     </Box>
-                    <Box component="td" sx={cellSx}>
-                      <LayerBadge layer={layer} />
-                    </Box>
-                    <Box component="td" sx={cellSx}>
-                      <RiskPill risk={r} />
-                    </Box>
+                    <Box component="td" sx={cellSx}><LayerBadge layer={layer} /></Box>
+                    <Box component="td" sx={cellSx}><RiskPill risk={r} /></Box>
                   </Box>
                 );
               })}
@@ -247,7 +329,7 @@ const BlastRadiusReport: React.FC<BlastRadiusReportProps> = ({
       <Box sx={{ mb: 3 }}>
         <SectionTitle>User-facing impact</SectionTitle>
         {affectedControllers.length === 0 ? (
-          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontStyle: 'italic' }}>
+          <Typography sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' }, color: 'text.secondary', fontStyle: 'italic' }}>
             None identified — no controller-layer symbols in blast radius.
           </Typography>
         ) : (
@@ -255,30 +337,21 @@ const BlastRadiusReport: React.FC<BlastRadiusReportProps> = ({
             {affectedControllers.map((sym) => {
               const { name, file } = parseSymbol(sym);
               return (
-                <Box key={sym} sx={{ bgcolor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 2, p: '10px 14px' }}>
-                  <Typography sx={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#fcd34d' }}>{name}</Typography>
-                  <Typography sx={{ fontSize: '0.65rem', color: 'rgba(252,211,77,0.55)', mt: 0.3 }}>{file}</Typography>
+                <Box key={sym} sx={{
+                  bgcolor: 'rgba(245,158,11,0.08)',
+                  border: '1px solid rgba(245,158,11,0.25)',
+                  borderRadius: 2,
+                  p: { xs: '10px 12px', sm: '10px 14px' },
+                }}>
+                  <Typography sx={{ fontFamily: 'monospace', fontSize: { xs: '0.7rem', sm: '0.72rem' }, color: '#fcd34d', wordBreak: 'break-word' }}>
+                    {name}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.62rem', color: 'rgba(252,211,77,0.55)', mt: 0.3, wordBreak: 'break-word' }}>
+                    {file}
+                  </Typography>
                 </Box>
               );
             })}
-          </Box>
-        )}
-      </Box>
-
-      <Box sx={{ mb: 3 }}>
-        <SectionTitle>Merge recommendations</SectionTitle>
-        {recommendations.length === 0 ? (
-          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontStyle: 'italic' }}>
-            No recommendations generated.
-          </Typography>
-        ) : (
-          <Box component="ol" sx={{ listStyle: 'none', p: 0, m: 0 }}>
-            {recommendations.map((rec, i) => (
-              <Box component="li" key={i} sx={recItemSx}>
-                <Box sx={recNumSx}>{i + 1}</Box>
-                <Box component="span">{rec}</Box>
-              </Box>
-            ))}
           </Box>
         )}
       </Box>

@@ -40,3 +40,7 @@ export const extractRecommendations = (raw: string):string[] => {
     .filter((l) => /^\d+\./.test(l.trim()))
     .map((l) => l.replace(/^\d+\.\s*/, '').trim());
 }
+
+export const stripMarkdown = (text: string): string => {
+  return text.replace(/\*\*(.+?)\*\*/g, '$1');
+}
