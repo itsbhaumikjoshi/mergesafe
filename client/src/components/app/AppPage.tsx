@@ -57,7 +57,7 @@ const AppPage = () => {
         </Button>
         <Box sx={headerStyles}>
           <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-            Welcome, {user?.firstName || "John"} {user?.lastName || "Doe"}
+            Welcome, {user?.firstName} {user?.lastName}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             Ready to analyze your pull requests?

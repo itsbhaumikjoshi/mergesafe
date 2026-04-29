@@ -28,7 +28,11 @@ const RegisterForm = ({ onSwitchToLogin }: RegisterFormProps) => {
     try {
       await register({ firstName, lastName, email, password });
       const user = await fetchUserData();
-      setUser(user);
+      setUser({
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name
+      });
       navigate('/app');
     } catch (err: any) {
       setError(err.message || 'An error occurred during registration');
@@ -62,7 +66,7 @@ const RegisterForm = ({ onSwitchToLogin }: RegisterFormProps) => {
           required
         />
       </Stack>
-      
+
       <TextField
         fullWidth
         label="Email"
@@ -81,7 +85,7 @@ const RegisterForm = ({ onSwitchToLogin }: RegisterFormProps) => {
         onChange={(e) => setPassword(e.target.value)}
         required
       />
-      
+
       <Button
         type="submit"
         variant="contained"
@@ -108,9 +112,9 @@ const RegisterForm = ({ onSwitchToLogin }: RegisterFormProps) => {
       <Box sx={{ textAlign: 'center', mt: 2 }}>
         <Typography variant="body2" color="text.secondary">
           Already have an account?{' '}
-          <Button 
-            variant="text" 
-            color="primary" 
+          <Button
+            variant="text"
+            color="primary"
             onClick={onSwitchToLogin}
             sx={{ p: 0, minWidth: 'auto', textTransform: 'none', fontWeight: 600 }}
           >
