@@ -57,7 +57,7 @@ const AppPage = () => {
         </Button>
         <Box sx={headerStyles}>
           <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-            Welcome, {user?.firstName} {user?.lastName}
+            Welcome, {user?.firstName} {user?.firstName === "Google" ? user?.lastName : (user?.lastName !== "User" && user?.lastName)}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             Ready to analyze your pull requests?
