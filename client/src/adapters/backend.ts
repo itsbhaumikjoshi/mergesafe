@@ -8,8 +8,8 @@ const pendingTimers = new WeakMap<any, any>();
 axios.interceptors.request.use((config) => {
     if (config.url?.startsWith(BASE_URL)) {
         const timer = setTimeout(() => {
-            showNotification("Starting Backend, might take upto 25secs.");
-        }, 5000);
+            showNotification("Starting Backend, might take upto 60secs.");
+        }, 50000);
         pendingTimers.set(config, timer);
     }
     return config;
