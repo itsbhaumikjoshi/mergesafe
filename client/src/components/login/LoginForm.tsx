@@ -117,7 +117,7 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
         }}
         disabled={isLoading}
       >
-        Login with Dev Creds
+        Log in with the demo test account.
       </Button>
 
       <Box sx={{ textAlign: 'center', mt: 2 }}>

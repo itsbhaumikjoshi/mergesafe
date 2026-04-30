@@ -1,6 +1,40 @@
 import axios from "axios";
+import { showNotification } from "../helpers/notification";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
+
+const pendingTimers = new WeakMap<any, any>();
+
+axios.interceptors.request.use((config) => {
+    if (config.url?.startsWith(BASE_URL)) {
+        const timer = setTimeout(() => {
+            showNotification("Starting Backend, might take upto 25secs.");
+        }, 5000);
+        pendingTimers.set(config, timer);
+    }
+    return config;
+});
+
+axios.interceptors.response.use(
+    (response) => {
+        const timer = pendingTimers.get(response.config);
+        if (timer) {
+            clearTimeout(timer);
+            pendingTimers.delete(response.config);
+        }
+        return response;
+    },
+    (error) => {
+        if (error.config) {
+            const timer = pendingTimers.get(error.config);
+            if (timer) {
+                clearTimeout(timer);
+                pendingTimers.delete(error.config);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 export const fetchUserData = async () => {
     try {
