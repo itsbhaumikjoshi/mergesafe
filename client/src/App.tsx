@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { ThemeProvider, CssBaseline } from "@mui/material"
 import { AuthProvider } from "./context/AuthContext"
+import { NotificationProvider } from "./context/NotificationContext"
 import { LandingPage } from "./components/home"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import { AppPage } from "./components/app"
@@ -10,14 +11,16 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/app" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
-          </Routes>
-        </Router>
-      </AuthProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <Router>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/app" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
+            </Routes>
+          </Router>
+        </AuthProvider>
+      </NotificationProvider>
     </ThemeProvider>
   )
 }
